@@ -1,0 +1,329 @@
+---
+title: "LIKELIHOOD OF ABSENCE AT WORK - ANALYSIS OF CATEGORICAL DATA PROJECT - PHASE I"
+author: "Group 10: Nandhini (S3798841), Yalini Subramanian Kannan (s3807626), Sruthi Soundarapandian (S3828120)"
+date: "27/09/2020"
+output:
+  html_document: default
+  word_document: default
+---
+## Introduction - ABSENTEEISM AT WORK 
+Absenteeism is each managers nightmare, and associations ought to occasionally ascertain the expense of absenteeism to empower supervisors to decide the earnestness of the issue and its effect on benefits dependent on the latest accessible data. Absenteeism is considered to be  commonly hurtful to an association.The data set provides us an insight of how external factors  demotivates the employees in an organization which leads to absenteeism .
+However , when absenteeism becomes excessive it creates problems , so considering the data set , we will be able to predict the factors leading to non-appearance of employees. Analyzing the factors , it can be seen that people who are above 50 years old doesn’t apply for leave as  much  as people with below 50, employees who are aren’t social smokers tend to have more hours of absence .Considering all the factors such as transportation expense , distance from workplace to home, and the medical history each employees have which tends to affect the number of hours an employee works .
+Our goals is to predict the  the extent and frequency of the absenteeism of employees can be beneficial to companies and organizations in terms of productivity and cost
+
+
+## DATA SOURCE AND DESCRIPTION 
+This data is obtained from  Archive.ics.uci.edu. 2020. UCI Machine Learning Repository: Absenteeism At Work Data Set. [online] Available at: <https://archive.ics.uci.edu/ml/datasets/Absenteeism+at+work> 
+The data set consists of 740 observations and 21 feature variables such as, 
+ 1. Individual identification (ID)
+ 2. Reason for absence (ICD): It depicts the employees reason for most of the non-appearance days. Absences attested by the International Code of Diseases (ICD) stratified into 21 categories 
+ 3. Month of absence
+ 4. Day of the week (Monday (2), Tuesday (3), Wednesday (4), Thursday (5), Friday (6))
+ 5. Seasons
+ 6. Transportation expense
+ 7. Distance from Residence to Work (kilometers) : Calculating the distance from employees respective home  to office.
+ 8. Service time
+ 9. Age : Determining the group by age, (i.e) people over 50 take less leave of absence compared to people less than 50 
+ 10. Work load Average/day : Recording the workload 
+ 11. Hit target
+ 12. Disciplinary failure (yes=1; no=0)
+ 13. Education Analysing the level of education can show that if employee can handle overload or not with the levels. (high school (1), graduate (2), postgraduate (3), master and doctor (4))
+ 14. Son (number of children)
+ 15. Social drinker (yes=1; no=0)
+ 16. Social smoker (yes=1; no=0)
+ 17. Pet (number of pet)
+ 18. Weight
+ 19. Height
+ 20. Body mass index
+ 21. Absenteeism time in hours 
+
+Our goal is to predict the employees who has taken leave of absence by considering all the features in Absenteeism at work dataset. For analysis purpose, a binary target variable is created using the existing feature “Absenteeism time in hours” which is given as,
+*	 If Absenteeism time in hours > 0, then target variable = Absent 
+*	 If Absenteeism time in hours = 0, then target variable = Not Absent
+
+## Set working directory and load necessary packages
+```{r}
+getwd()
+setwd("C:/Users/61420/Downloads")
+
+library(readr)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(car)
+library(ggplot2)
+library(plot3D)
+```
+
+Following is the description of our dataset,
+
+```{r}
+## Data description
+
+data_descrp <- read_excel("Absenteeism_at_work.xls", sheet = 3)
+data_descrp%>% knitr::kable(caption = "Data decsription")
+
+```
+
+## Loading data and checking the structure
+The Absenteeism at work dataset is consisting of 740 records and 21 features of which 8 features are categorical in nature. These variables are encoded into numerical values in the original dataset thus we find all variables to be numerical type as per the structure of this original dataset.
+```{r}
+
+raw_absent_data <- read_csv("Absenteeism_at_work.csv")
+str(raw_absent_data)
+head(raw_absent_data)
+
+```
+
+## creating dataframe and checking its structure
+```{r}
+absent_df = data.frame(raw_absent_data)
+head(absent_df)
+```
+
+## creating target variable
+For further analysis, we create a dataframe of original dataset that can be pre-processed.
+```{r}
+absent_df <- absent_df %>% mutate(Target_variable = case_when(absent_df$Absenteeism.time.in.hours > 0 ~ "Absent", 
+                                                              absent_df$Absenteeism.time.in.hours == 0 ~ "Not_Absent"))
+absent_df$Target_variable <- as.factor(absent_df$Target_variable)
+str(absent_df)
+
+```
+
+## DATA TRANSFORMATION
+This step includes recoding all categorical features into original factor levels and creating new columns if necessary.
+```{r}
+col_names <- c('Reason.for.absence','Month.of.absence','Day.of.the.week','Seasons','Disciplinary.failure', 'Education','Social.drinker','Social.smoker')
+absent_df[,col_names] <- lapply(absent_df[,col_names], factor)
+
+
+## recoding Reason for absence
+absent_df$Reason.for.absence <- recode(absent_df$Reason.for.absence, "'1' = 'Certain infectious and parasitic diseases' ; 
+                                                                      '2' = 'Neoplasms'; 
+                                                                      '3' = 'Diseases of the blood and blood-forming organs and certain disorders involving the immune mechanism';
+                                                                      '4' = 'Endocrine, nutritional and metabolic diseases';
+                                                                      '5' = 'Mental and behavioural disorders' ; 
+                                                                      '6' = 'Diseases of the nervous system';
+                                                                      '7' = 'Diseases of the eye and adnexa';
+                                                                      '8' = 'Diseases of the ear and mastoid process';
+                                                                      '9' = 'Diseases of the circulatory system';
+                                                                      '10' = 'Diseases of the respiratory system';
+                                                                      '11' = 'Diseases of the digestive system' ;
+                                                                      '12' = 'Diseases of the skin and subcutaneous tissue';
+                                                                      '13' = 'Diseases of the musculoskeletal system and connective tissue';
+                                                                      '14' = 'Diseases of the genitourinary system';
+                                                                      '15' = 'Pregnancy, childbirth and the puerperium';
+                                                                      '16' = 'Certain conditions originating in the perinatal period';
+                                                                      '17' = 'Congenital malformations, deformations and chromosomal abnormalities';
+                                                                      '18' = 'Symptoms, signs and abnormal clinical and laboratory findings, not elsewhere classified';
+                                                                      '19' = 'Injury, poisoning and certain other consequences of external causes';
+                                                                      '20' = 'External causes of morbidity and mortality';
+                                                                      '21' = 'Factors influencing health status and contact with health services';
+                                                                      '22' = 'patient follow-up';
+                                                                      '23' = 'medical consultation';
+                                                                      '24' = 'blood donation';
+                                                                      '25' = 'laboratory examination';
+                                                                      '26' = 'unjustified absence';
+                                                                      '27' = 'physiotherapy';
+                                                                      '28' = 'dental consultation';
+                                                                      '0' = 'No reason'  ")
+
+## recoding Month of absence
+absent_df$Month.of.absence <- recode(absent_df$Month.of.absence, "'1' = 'Jan';
+                                                                  '2' = 'Feb';
+                                                                  '3' = 'Mar';
+                                                                  '4' = 'Apr';
+                                                                  '5' = 'May';
+                                                                  '6' = 'Jun';
+                                                                  '7' = 'Jul';
+                                                                  '8' = 'Aug';
+                                                                  '9' = 'Sep';
+                                                                  '10' = 'Oct';
+                                                                  '11' = 'Nov';
+                                                                  '12' = 'Dec';
+                                                                  '0' = 'N/A' ")
+
+## recoding Day of week
+absent_df$Day.of.the.week <- recode(absent_df$Day.of.the.week, "'2' = 'Monday';
+                                                                '3' = 'Tuesday';
+                                                                '4' = 'Wednesday';
+                                                                '5' = 'Thursday';
+                                                                '6' = 'Friday' ")
+
+## recoding Seasons
+absent_df$Seasons <- recode(absent_df$Seasons, " '1' = 'summer'; '2' = 'autumn'; '3' = 'winter'; '4' = 'spring' ")
+
+## recoding Disciplinary failure
+absent_df$Disciplinary.failure <- recode(absent_df$Disciplinary.failure, "'1' = 'yes'; '0' = 'no' ")
+
+## recoding Education
+absent_df$Education <- recode(absent_df$Education, "'1' = 'high school'; 
+                                                    '2' = 'graduate';
+                                                    '3' = 'postgraduate';
+                                                    '4' = 'master and doctor' ")
+
+## recoding Social drinker
+absent_df$Social.drinker <- recode(absent_df$Social.drinker, "'1' = 'yes' ; '0' = 'no' ")
+
+## recoding Social smoker
+absent_df$Social.smoker <- recode(absent_df$Social.smoker, "'1' = 'yes' ; '0' = 'no' ")
+
+## Creating a new variable Age group
+absent_df <- absent_df %>% mutate(Age_group = case_when(absent_df$Age >= 25 & absent_df$Age < 30 ~ "25-30", 
+                                                        absent_df$Age >= 30 & absent_df$Age < 35 ~ "30-35",
+                                                        absent_df$Age >= 35 & absent_df$Age < 40 ~ "35-40",
+                                                        absent_df$Age >= 40 & absent_df$Age < 45 ~ "40-45",
+                                                        absent_df$Age >= 45 & absent_df$Age < 50 ~ "45-50",
+                                                        absent_df$Age >= 50 ~ "Above 50"))
+
+## converting age group into ordered factor
+absent_df$Age_group <- factor(absent_df$Age_group, levels = c("25-30","30-35","35-40","40-45","45-50","Above 50"), ordered = TRUE)
+
+```
+
+
+## Data structure and Missing values
+From the given dataset, it was observed that there is no missing values.
+```{r}
+## summary of transformed data
+str(absent_df)
+summary(absent_df) 
+
+
+## checking total missing values in each column - 0 missing values
+colSums(is.na(absent_df))
+
+## checking total missing observation in each row
+absent_df[!complete.cases(absent_df),]
+
+```
+
+## DATA VISUALIZATION
+
+## 1 variable plot
+
+```{r}
+## Depicting Distribution of target variable
+Absent_distrb <- absent_df %>% group_by(Target_variable) %>% summarise(count= n(), percentage = round(count/nrow(absent_df)*100,2)) %>% arrange((desc(count)))
+Absent_distrb %>% knitr::kable(caption = "Distribution of target variable")
+
+ggplot(Absent_distrb, aes(x=Target_variable, y = percentage, fill= Target_variable)) + geom_bar(stat = 'identity') +geom_text(aes(label=percentage), vjust = 1.5, hjust = 0.5)  + labs(title = "Distribution of target variable")  
+
+
+
+```
+
+```{r}
+
+## Distribution of Reason for absence
+Reason_when_absent <- absent_df %>% filter(Target_variable == 'Absent') %>% group_by(Reason.for.absence) %>% summarise(count= n(), percentage = round(count/nrow(absent_df)*100,2)) %>% arrange((desc(count)))
+Reason_when_absent
+
+ggplot(Reason_when_absent, aes(x = reorder(Reason.for.absence, percentage), y=percentage, fill=Reason.for.absence)) + geom_bar(stat = 'identity') + theme(legend.position = 'none') + coord_flip()+geom_text(aes(label=percentage), vjust = 0.6, hjust = 1.0) + labs(title = "Distribution of Reasons for absense", x="Reasons for absence", y = "percentage")
+
+
+## medical consultation - most selected reason for absence
+
+
+```
+```{r}
+## Depicting distribution of Age group
+ggplot(absent_df, aes(x=Age_group, fill= Age_group)) + geom_bar()+ labs(title = "Distribution of employees' age group", x="Age group")
+
+## Almost normally distributed
+```
+```{r}
+## Depicting Distribution of Education
+ggplot(absent_df, aes(x = Education, fill = Education)) + geom_bar() 
+
+```
+```{r}
+## Distribution of Service time by Education
+ggplot(absent_df, aes(x = Service.time, fill = Education)) + geom_histogram(binwidth = 5)
+
+## Distribution of Target variable by Day of week
+ggplot(absent_df, aes(x = absent_df$Target_variable, fill = Day.of.the.week)) + geom_bar(position = "fill") 
+
+## % of Target variable by Age group
+ggplot(absent_df, aes(x=Target_variable, fill=Age_group)) + geom_bar(position = "fill")
+
+## Distribution of Season 
+Season_distrb <- absent_df %>% filter(Target_variable == 'Absent')  %>% group_by(Seasons) %>% summarise(count=n(), percent = round(count/nrow(absent_df)*100,2)) %>% arrange(desc(count))
+
+ggplot(Season_distrb, aes(x = reorder(Seasons, percent), y=percent, fill=Seasons)) + geom_bar(stat = 'identity') + theme(legend.position = 'none') + coord_flip()+geom_text(aes(label=percent), vjust = 0.6, hjust = 1.0) + labs(title = "Distribution of Seasons by absense", x="Absenct Seasons", y = "percentage")
+```
+
+
+## 2 Variable plots
+
+```{r}
+## Relationship between Age and Service time
+ggplot(absent_df, aes(x=Age,y=Service.time, colour = Age))+geom_point()+ geom_smooth(method = 'loess') + labs(title = "Relationship between Age and Service time")+ scale_colour_gradient(low=
+"orange",high="darkgreen")
+```
+```{r}
+## Relationship between Distance and Transportation expense
+ggplot(absent_df, aes(x=Distance.from.Residence.to.Work,y=Transportation.expense,colour = Distance.from.Residence.to.Work))+geom_point()+ geom_smooth(method = 'loess') + scale_colour_gradient(low=
+"blue",high="red")
+
+```
+```{r}
+## Relationship between Target_variable and Disciplinary failure
+ggplot(absent_df, aes(x=Target_variable, y=Disciplinary.failure, colour = Target_variable)) + geom_jitter()
+
+```
+
+```{r}
+## Relationship between Service time and Work load average
+ggplot(absent_df, aes(x=Service.time, y=log(Work.load.Average.day),colour = Service.time)) + geom_point()+ geom_smooth(method = 'loess')+ scale_colour_gradient(low="purple",high="yellow")
+
+```
+
+## 3 Variable plots
+
+```{r}
+## Relationship between Distance from residence to work, Transport expense and Absenteeism time in hours
+scatter3D(absent_df$Distance.from.Residence.to.Work, absent_df$Transportation.expense, absent_df$Absenteeism.time.in.hours,colvar = absent_df$Absenteeism.time.in.hours ,pch=19, cex = 1.0, colkey = TRUE, bty="g", main="3D plot between Distance, Transport expense, Absent hours", xlab = "Distance from residence", ylab = "Transport expence", zlab = "Absent hours")
+
+```
+
+
+
+
+```{r}
+## Relationship between Age, Servicetime and Absenteeism time in hours
+scatter3D( absent_df$Age, absent_df$Service.time,absent_df$Absenteeism.time.in.hours, pch=19, cex = 1.0, colkey = TRUE, bty="g", main="3D plot between Age, Service time, Absent hours", xlab = "Age", ylab = "Service time", zlab = "Absent hours")
+
+
+```
+
+```{r}
+## Relationship between Height, Weight and BMI
+scatter3D( absent_df$Height, absent_df$Weight,absent_df$Body.mass.index, pch=19, cex = 1.0, colkey = TRUE, bty="g", main="3D plot between Height, Weight, BMI", xlab = "Height", ylab = "Weight", zlab = "BMI")
+
+```
+```{r}
+## Relationship between Service time, Work Load Average and Absenteeism time in hours
+scatter3D( absent_df$Service.time, absent_df$Work.load.Average.day,absent_df$Absenteeism.time.in.hours, pch=19, cex = 1.0, colkey = TRUE, bty="g", main="3D plot between Service time, Work load average, Absent hours", xlab = "Service time", ylab = "Work load average", zlab = "Absent hours")
+
+```
+
+## RESULTS AND DISCUSSION 
+Discussing the final stage of the analysis with all the facts gathered so far. Considering the absent and non-absent features , it is observed that 94.05% of the employees take leave and only the remaining 5.95 % are not absent. Employees who are in the age group of 45-50 and above 50 do not take leave of absence as much as compared to employees who are below 40 , employees between 35-40 tend to have a higher rate of absence compared to others. Looking at the education history, It was found that most of the employees are high school pass outs and they hold the highest service time amongst others. Examining the days and the season, people have taken leave of absence most likely on Monday and Friday during autumn could be because it is aligned with the weekend .
+From the two variable plot, we can determine a stable relationship between Age and service time, as employees age increases service time increases. On the other hand measuring the employees distance from  their respective home to work  and their transportation expenses, obvious fact was that the employees who live far from office are prone to take leave more often considering the expense sometimes, and the next fact is taking disciplinary failure into account people who apply for leave fail to meet the requirements. People who work more hours are observed  to achieve the target quickly . We can also assume by looking at people’s height , weight and BMI that people are inclined to get sick and apply for leave more often . It is also observed that the major reason for absenteeism seems to be a medical reason, relating all the leave for absence features, all the employees had medical emergencies which cannot be left unattended . 
+
+
+## CONCLUSION
+Absenteeism can be reduced if the management gets more involved with the employees and if all their concerns are addressed properly. Furthermore, if an employee can get a couple of days leave for the  medical condition he has  without considering it as a leave , it would reduce the rate of absenteeism. To conclude how to reduce the average rate of absenteeism, furthermore regression analysis will be performed on the data to determine the significant factors that influence employees to take leave.
+
+
+
+## REFERENCE
+* [1]	R M Badubi, U Akhunjonov, B Obrenovic (2017), “A Critical Risk Analysis of  Absenteeism in the Work Place”, Journal of International Business Research and Marketing, vol. 2, issue 6, pp. 32-36, September 2017. [online] Available: https://www.researchgate.net/publication/335491539_A_Critical_Risk_Analysis_of_Absenteeism_in_the_Work_Place
+* [2]	A Asiri, M Abdullah (2019), “Employees Absenteeism Factors Based on Data Analysis and Classification”, Bioscience Biotechnology Research Communication, Special Issue Vol 12 No(1), January 2019. ISSN: 0974-6455
+* [3]	Absenteeism at work Data Set, UCI Machine Learning Repository, Center for Machine Learning and Intelligent Systems. [online] Available: https://archive.ics.uci.edu/ml/datasets/Absenteeism+at+work
+* [4]	Kaggle notebook: Absenteeism at work Data Set, UCI repository, 2018. [online] Available: https://www.kaggle.com/loganalive/absenteeism-at-work-uci-repository
+* [5]	Kaggle notebook: Employee_Absenteeism_Prediction, 2019. [online] Available: https://www.kaggle.com/olacharles/employee-absenteeism-prediction
+
+

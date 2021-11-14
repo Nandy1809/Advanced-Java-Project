@@ -1,0 +1,619 @@
+---
+title: "LIKELIHOOD OF ABSENCE AT WORK - ANALYSIS OF CATEGORICAL DATA PROJECT - PHASE II"
+author: "Group 10: Nandhini (S3798841), Yalini Subramanian Kannan (s3807626), Sruthi Soundarapandian (S3828120)"
+date: "1/11/2020"
+output: html_document
+---
+
+## TABLE OF CONTENTS
+
+1. Introduction
+2. Objective
+3. Data source and description
+4. Methodology
+5. Loading necessary packages and dataset
+6. Data preprocessing  
+7. Distribution of newly created variables
+8. Relationship between Target variable and independent variables
+9. Preparing dataset for model
+10. Manual model building
+11. Feature selection through stepwise approach 
+12. Residual analysis
+13. Response analysis
+14. Goodness of fit
+15. Confidence interval
+16. Hypothesis testing
+17. Sensitivity analysis
+18. Critique & limitation
+19. Summary & conclusion
+20. References
+
+  
+  
+## 1. INTRODUCTION
+Absenteeism is each managers nightmare, and associations ought to occasionally ascertain the expense of absenteeism to empower supervisors to decide the earnestness of the issue and its effect on benefits dependent on the latest accessible data. Absenteeism is considered to be  commonly hurtful to an association.Density of companies are related to several factors but mostly to absenteeism. Excessive absenteeism  can have a terrible impact on companies which will lead to a huge loss. The data set provides us an insight of how external factors demotivates the employees in an organization which leads to absenteeism. 
+
+## 2. OBJECTIVE
+The main objective here is to predict the factors leading to absence of employees at work. We aim to study how and why the employees absenteeism tends to affect the company and analyze the factors which can be avoided in order to minimize that.
+
+## 3. DATA SOURCE AND DESCRIPTION 
+This data is obtained from  Archive.ics.uci.edu. 2020. UCI Machine Learning Repository: Absenteeism At Work Data Set. [online] Available at: <https://archive.ics.uci.edu/ml/datasets/Absenteeism+at+work> 
+The data set consists of 740 observations and 21 feature variables such as, 
+
+* 1. Individual identification (ID)
+* 2. Reason for absence (ICD): It depicts the employees reason for most of the non-appearance days. Absences attested by the International Code of Diseases (ICD) stratified into 21 categories 
+* 3. Month of absence
+* 4. Day of the week (Monday (2), Tuesday (3), Wednesday (4), Thursday (5), Friday (6))
+* 5. Seasons
+* 6. Transportation expense
+* 7. Distance from Residence to Work (kilometers) : Calculating the distance from employees respective home  to office.
+* 8. Service time
+* 9. Age : Determining the group by age, (i.e) people over 50 take less leave of absence compared to people less than 50 
+* 10. Work load Average/day : Recording the workload 
+* 11. Hit target
+* 12. Disciplinary failure (yes=1; no=0)
+* 13. Education Analysing the level of education can show that if employee can handle overload or not with the levels. (high school (1), graduate (2), postgraduate (3), master and doctor (4))
+* 14. Son (number of children)
+* 15. Social drinker (yes=1; no=0)
+* 16. Social smoker (yes=1; no=0)
+* 17. Pet (number of pet)
+* 18. Weight
+* 19. Height
+* 20. Body mass index
+* 21. Absenteeism time in hours (target)
+
+## 4. METHODOLOGY
+For analysis purpose, a binary target variable is created using the existing feature “Absenteeism time in hours” which is given as,
+
+*	If Absenteeism time in hours > 0, then target variable = Absent 
+*	If Absenteeism time in hours = 0, then target variable = Not Absent
+
+Project phase I contained exploratory data analysis that was performed using visualization techniques. Project phase II consists of statistical modelling to achieve our objective. Relationship between target variable and continuous feature variables are analyzed using correlation test while association between target variable and categorical feature variable is analyzed through Chi-square test. As our target variable is a binary response variable, this study employs binary logistic regression model to predict the factors responsible for absence. Furthermore, this study employs Firth's penalized likelihood function called logistf model in order to handle the problem of complete separation that results when explanatory variable perfectly separates the target variable between 0 and 1. Also, as an alternative approach to deal with complete separation and non-convergence, a modified target variable is used to build logistic regression model. As per the modification method, median of absent time in hours is considered for calculating target variable and it is given as,
+
+*	If Absenteeism time in hours > median(Absenteeism time in hours), then target variable = Absent 
+*	If Absenteeism time in hours <= median(Absenteeism time in hours), then target variable = Not Absent
+
+As a part of feature selection process, step function using forward and backward selection approach are considered. To further test the Goodness of fit and overall significance of logistic regression model, Anova test and Wald test are used. Testing of confidence interval for parameters are analyzed through Wald test. By plotting the residuals of our model, difference between observed and fitted values are examined.    
+
+
+## 4.1 STATISTICAL MODELLING
+As mentioned earlier, our response variable is a binary categorical variable containing values such as absent or not absent. To determine the possible factors influencing the response variable, this study fitted logistic regression model. In R, Binary logistic regression is fitted using glm() function with family parameter set as binomial and link as logit function. The model contains continuous as well as categorical independent variables. The values under Reason for absence is classified into four categories (namely Disease, Pregnancy/abnormalities, Symptoms/injury and Medical consultation) and renamed as Reason type.  
+Following is the logistic regression model fitted on absent at work dataset, 
+
+logit(∏i)=β0+ β1Xi1+ β2Xi2+⋯+ β19Xi19  
+
+for i = 1,2,...,740 
+where, 0 < ∏ < 1
+
+* ∏i = Probability of absence at work for i
+* X1 = Day.of.the.week
+* X2 = Seasons
+* X3 = Transportation.expense
+* X4 = Distance.from.Residence.to.Work
+* X5 = Service.time
+* X6 = Age
+* X7 = Work.load.Average.day
+* X8 = Hit.target
+* X9 = Disciplinary.failure
+* X10 = Education
+* X11 = Son
+* X12 = Social.drinker
+* X13 = Social.smoker
+* X14 = Pet
+* X15 = Weight
+* X16 = Height
+* X17 = Body.mass.index
+* X18 = Reason_type
+* X19 = Month.of.absence
+* β0 = intercept of the model
+* β1,..,β19 = coefficients of each independent variables
+
+
+## 5. LOADING NECESSARY PACKAGES AND DATASET
+```{r}
+library(readr)
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(car)
+library(ggplot2)
+library(corrplot)
+
+```
+
+
+## 5.1 set working directory and load dataset
+```{r}
+setwd("C:/Users/61420/Downloads")
+
+raw_absent_data <- read_csv("Absenteeism_at_work.csv")
+
+## checking structure and dimesion of dataset
+str(raw_absent_data)
+head(raw_absent_data)
+
+```
+
+## 6. DATA PREPROCESSING
+
+```{r}
+## creating a dataframe
+absent_df = data.frame(raw_absent_data)
+```
+
+Creating a target Variables Using the median of Absenteeism.time.in.hours 
+```{r}
+## adding Target_variable
+absent_df <- absent_df %>% mutate(Target_variable = case_when(absent_df$Absenteeism.time.in.hours > 0 ~ "1", 
+                                                              absent_df$Absenteeism.time.in.hours == 0 ~ "0"))
+
+## adding Target_variable1 using median approach
+absent_df$Target_variable <- as.factor(absent_df$Target_variable)
+
+absent_df <- absent_df %>%   mutate(Target_variable1 = case_when(absent_df$Absenteeism.time.in.hours  >  median(absent_df$Absenteeism.time.in.hours) ~ "1",absent_df$Absenteeism.time.in.hours <= median(absent_df$Absenteeism.time.in.hours) ~ "0"))
+absent_df$Target_variable1 <- as.factor(absent_df$Target_variable1)
+```
+
+Creating a new variable reason type with categories Disease, pregnancy/abnormalities, symptoms/injury, Medical_consultation using Reason.for.absence. 
+```{r}
+## adding reason type by grouping Reason for absence into 4 categories
+absent_df <- absent_df %>% mutate(Reason_type = case_when(absent_df$Reason.for.absence == 0 ~ "NoReason",
+                                                          (absent_df$Reason.for.absence >= 1 & absent_df$Reason.for.absence < 15) ~ "Disease",
+                                                          (absent_df$Reason.for.absence >= 15 & absent_df$Reason.for.absence <18) ~ "pregnancy/abnormalities",
+                                                          (absent_df$Reason.for.absence >= 18 & absent_df$Reason.for.absence < 22) ~ "symptoms/injury",
+                                                          absent_df$Reason.for.absence >= 22 ~ "Medical_consultation")) 
+absent_df$Reason_type <- as.factor(absent_df$Reason_type)
+absent_df$Reason_type <- relevel(x = absent_df$Reason_type,ref = "NoReason")
+```
+
+Recoding the Variables like Reason for absence, Month of absence, Day of the week, Seasons, Disciplinary failure, Education, Social drinker, Social smoker
+```{r}
+## converting necessary variables into factors and recoding them
+col_names <- c('Reason.for.absence','Month.of.absence','Day.of.the.week','Seasons','Disciplinary.failure', 'Education','Social.drinker','Social.smoker')
+absent_df[,col_names] <- lapply(absent_df[,col_names], factor)
+
+## recoding Reason for absence
+absent_df$Reason.for.absence <- recode(absent_df$Reason.for.absence, "'1' = 'Certain infectious and parasitic diseases' ; 
+                                                                      '2' = 'Neoplasms'; 
+                                                                      '3' = 'Diseases of the blood and blood-forming organs and certain disorders involving the immune mechanism';
+                                                                      '4' = 'Endocrine, nutritional and metabolic diseases';
+                                                                      '5' = 'Mental and behavioural disorders' ; 
+                                                                      '6' = 'Diseases of the nervous system';
+                                                                      '7' = 'Diseases of the eye and adnexa';
+                                                                      '8' = 'Diseases of the ear and mastoid process';
+                                                                      '9' = 'Diseases of the circulatory system';
+                                                                      '10' = 'Diseases of the respiratory system';
+                                                                      '11' = 'Diseases of the digestive system' ;
+                                                                      '12' = 'Diseases of the skin and subcutaneous tissue';
+                                                                      '13' = 'Diseases of the musculoskeletal system and connective tissue';
+                                                                      '14' = 'Diseases of the genitourinary system';
+                                                                      '15' = 'Pregnancy, childbirth and the puerperium';
+                                                                      '16' = 'Certain conditions originating in the perinatal period';
+                                                                      '17' = 'Congenital malformations, deformations and chromosomal abnormalities';
+                                                                      '18' = 'Symptoms, signs and abnormal clinical and laboratory findings, not elsewhere classified';
+                                                                      '19' = 'Injury, poisoning and certain other consequences of external causes';
+                                                                      '20' = 'External causes of morbidity and mortality';
+                                                                      '21' = 'Factors influencing health status and contact with health services';
+                                                                      '22' = 'patient follow-up';
+                                                                      '23' = 'medical consultation';
+                                                                      '24' = 'blood donation';
+                                                                      '25' = 'laboratory examination';
+                                                                      '26' = 'unjustified absence';
+                                                                      '27' = 'physiotherapy';
+                                                                      '28' = 'dental consultation';
+                                                                      '0' = 'No reason'  ")
+
+## recoding Month of absence
+absent_df$Month.of.absence <- recode(absent_df$Month.of.absence, "'1' = 'Jan';
+                                                                  '2' = 'Feb';
+                                                                  '3' = 'Mar';
+                                                                  '4' = 'Apr';
+                                                                  '5' = 'May';
+                                                                  '6' = 'Jun';
+                                                                  '7' = 'Jul';
+                                                                  '8' = 'Aug';
+                                                                  '9' = 'Sep';
+                                                                  '10' = 'Oct';
+                                                                  '11' = 'Nov';
+                                                                  '12' = 'Dec';
+                                                                  '0' = 'N/A' ")
+absent_df$Month.of.absence <- relevel(x = absent_df$Month.of.absence,ref = "N/A")
+
+## recoding Day of week
+absent_df$Day.of.the.week <- recode(absent_df$Day.of.the.week, "'2' = 'Monday';
+                                                                '3' = 'Tuesday';
+                                                                '4' = 'Wednesday';
+                                                                '5' = 'Thursday';
+                                                                '6' = 'Friday' ")
+
+## recoding Seasons
+absent_df$Seasons <- recode(absent_df$Seasons, " '1' = 'summer'; '2' = 'autumn'; '3' = 'winter'; '4' = 'spring' ")
+
+## recoding Disciplinary failure
+absent_df$Disciplinary.failure <- recode(absent_df$Disciplinary.failure, "'1' = 'yes'; '0' = 'no' ")
+
+## recoding Education
+absent_df$Education <- recode(absent_df$Education, "'1' = 'high school'; 
+                                                    '2' = 'graduate';
+                                                    '3' = 'postgraduate';
+                                                    '4' = 'master and doctor' ")
+
+## recoding Social drinker
+absent_df$Social.drinker <- recode(absent_df$Social.drinker, "'1' = 'yes' ; '0' = 'no' ")
+
+## recoding Social smoker
+absent_df$Social.smoker <- recode(absent_df$Social.smoker, "'1' = 'yes' ; '0' = 'no' ")
+
+
+
+## checking structure and dimension of the dataset
+str(absent_df)
+
+head(absent_df)
+
+```
+
+## 7. DISTRIBUTION OF NEWLY CREATED VARIABLES
+From the given dataset, this study mutated three new variables namely Reason_type, Target_variable and Target_variable1. This section shows the distribution of these variables.
+```{r}
+## Distribution of Reason type (grouped into 4 categories)
+Reason_when_absent <- absent_df %>% filter(Target_variable1 == '1') %>% group_by(Reason_type) %>% summarise(count= n(), percentage = round(count/nrow(absent_df)*100,2)) %>% arrange((desc(count)))
+
+Reason_when_absent %>% knitr::kable(caption = "Distribution of Reason type (grouped into 4 categories)")
+
+ggplot(Reason_when_absent, aes(x = reorder(Reason_type, percentage), y=percentage, fill=Reason_type)) + 
+  geom_bar(stat = 'identity') + theme(legend.position = 'none') + 
+  coord_flip()+geom_text(aes(label=percentage), vjust = 0.6, hjust = 1.0) + 
+  labs(title = "Distribution of Reasons type (grouped into 4 categories)", 
+       x="Reasons type", y = "percentage")
+
+
+## Distribution of target variable created using absent time in hours
+Absent_distrb <- absent_df %>% group_by(Target_variable) %>% summarise(count= n(), percentage = round(count/nrow(absent_df)*100,2)) %>% arrange((desc(count)))
+Absent_distrb %>% knitr::kable(caption = "Distribution of target variable (1-Absent; 0-Not absent)")
+
+ggplot(Absent_distrb, aes(x=Target_variable, y = percentage, fill= Target_variable)) + geom_bar(stat = 'identity') +geom_text(aes(label=percentage), vjust = 1.5, hjust = 0.5)  + labs(title = "Distribution of target variable (1-Absent; 0-Not absent)")  
+
+
+## Distribution of new Target variable calculated with median of absent time in hours
+Absent_distrb <- absent_df %>% group_by(Target_variable1) %>% summarise(count= n(), percentage = round(count/nrow(absent_df)*100,2)) %>% arrange((desc(count)))
+
+Absent_distrb %>% knitr::kable(caption = "Distribution of target variable using median approach(1-Absent; 0-Not absent)")
+
+ggplot(Absent_distrb, aes(x=Target_variable1, y = percentage, fill= Target_variable1)) + 
+  geom_bar(stat = 'identity') +  geom_text(aes(label=percentage), vjust = 1.5, hjust = 0.5)  + 
+  labs(title = "Distribution of new target variable using median approach(1-Absent; 0-Not absent)", x="Target variable1", y = "percentage")
+
+
+```
+
+```{r}
+## removing unnecessary variables from model
+## ID and Reason for absence 
+absent_df <- absent_df[,c(-1,-2)]
+colnames(absent_df)
+
+```
+
+
+## 8.  RELATIONSHIP BETWEEN TARGET VARIABLE AND INDEPENDENT VARIABLES   
+```{r}
+## correlation for continuous variables in df1
+
+corr_data <- absent_df %>% select("Transportation.expense", "Distance.from.Residence.to.Work", "Service.time", "Age", "Work.load.Average.day", "Hit.target","Son", "Pet", "Weight", "Height", "Body.mass.index", "Absenteeism.time.in.hours")
+correlation <- cor(corr_data)
+corrplot(correlation, method="circle", tl.col = "black",tl.cex = 0.9, main="Correlation plot for continuous variables")
+
+
+## association test using Chi-square test for categorical variable
+categorical_varb <- c("Reason_type","Month.of.absence","Day.of.the.week", "Seasons","Disciplinary.failure",
+                      "Education", "Social.drinker","Social.smoker")
+
+reason_chi<- chisq.test(absent_df$Target_variable, absent_df$Reason_type)
+reason_statistic <- reason_chi$statistic
+reason_pvalue <- reason_chi$p.value
+
+
+month_chi <-chisq.test(absent_df$Target_variable, absent_df$Month.of.absence)
+month_chi_statistic <- month_chi$statistic
+month_pvalue <- month_chi$p.value
+
+day_chi <- chisq.test(absent_df$Target_variable, absent_df$Day.of.the.week)
+day_statistic <- day_chi$statistic
+day_pvalue <- day_chi$p.value
+
+season_chi <- chisq.test(absent_df$Target_variable, absent_df$Seasons)
+season_statistic <- season_chi$statistic
+season_pvalue <- season_chi$p.value
+
+discipline_chi <- chisq.test(absent_df$Target_variable, absent_df$Disciplinary.failure)
+discipline_statistic <- discipline_chi$statistic
+discipline_pvalue <- discipline_chi$p.value
+
+education_chi <- chisq.test(absent_df$Target_variable, absent_df$Education)
+education_statistic <- education_chi$statistic
+education_pvalue <- education_chi$p.value
+
+drinker_chi <- chisq.test(absent_df$Target_variable, absent_df$Social.drinker)
+drinker_statistic <- drinker_chi$statistic
+drinker_pvalue <- drinker_chi$p.value
+
+smoker_chi <- chisq.test(absent_df$Target_variable, absent_df$Social.smoker)
+smoker_statistic <- smoker_chi$statistic
+smoker_pvalue <- smoker_chi$p.value
+
+
+chi_square <- c(reason_statistic, month_chi_statistic,day_statistic,season_statistic,discipline_statistic, education_statistic, drinker_statistic, smoker_statistic)
+p_value <- c(reason_pvalue, month_pvalue,day_pvalue,season_pvalue,discipline_pvalue, education_pvalue,
+             drinker_pvalue, smoker_pvalue)
+chiSquare <- data.frame(chi_square, round(p_value,4), row.names = categorical_varb)
+chiSquare %>% knitr::kable(caption = "Chi-square test of association for categorical variables")
+
+
+```
+
+* The correlation plot shows that absent time in hours is positively correlated to Transportation expense, Age, Son, work load average, Hit target and Height but it is negatively correlated with Distance from residence to work, Pet and Body mass index.
+* From the Chi-square test of association it is observed target variable is significantly associated with Reason type, Month of absence, Seasons, Disciplinary failure and Social smoker as the p-value is less than 0.05.
+
+## 9. PREPARE DATASET FOR MODEL
+We have created two separate dataset for each type of target variable
+```{r}
+## with Target variable (original data)
+df1 <- data.frame(absent_df[,c(-19,-21)])
+colnames(df1)
+
+## with Target variable1 (mean of absent time)
+df2 <- data.frame(absent_df[,c(-19,-20)])
+colnames(df2)
+
+
+```
+
+
+
+## 10. MANUAL MODEL BUILDING
+## 10.1 Manual model building with Target_variable
+```{r}
+##Building Models
+##Manual Model Building 1 with Target_variable
+Manual.Model1.fit <- glm(formula = Target_variable ~ ., family = binomial(link = logit),
+                         data = df1)
+## output
+summary(Manual.Model1.fit)
+
+## check overall significance with Anova test
+Anova(Manual.Model1.fit)
+
+
+```
+
+The glm model fitted on this dataset did not determine any significant and did not converge. Furthermore, it gives Warning message for Manual.Model1.fit model that fitted probabilities numerically 0 or 1 occurred. Since this could be a result of complete separation problem, we applied Firth's penalized likelihood function on the given dataset o overcome the issue. In R, Firth's model can be run using 'logistf' function  
+
+## 10.2 Manual model building with logistf function
+```{r}
+## loading necessary package for Firth's logistf model
+library(logistf)
+## logistf model fitting
+Manual.Model3.fit <-logistf(formula = Target_variable ~ .  , data = df1)
+## output
+summary(Manual.Model3.fit)
+```
+
+
+since logistf model also did not find any significant factors, we consider modifying the Target variable using median of absenteeism time in hours thereby balancing the proportion of success and failure
+
+## 10.3 Manual Model Building 2 with Target_variable1 (calculated using median of absent time in hours)
+```{r}
+Manual.Model2.fit <- glm(formula = Target_variable1 ~ ., family = binomial(link = logit),
+                         data = df2)
+## output
+summary(Manual.Model2.fit)
+
+## check overall significance with Anova test
+Anova(Manual.Model2.fit)
+```
+
+* From the logistic regression model fitted on Target_variable1 calculated using median approach, we observe that absence at work is influenced by variables like Monday; Spring and Summer season; Transportation expense; Son; Social drinker; Pet; Medical consultation and pregnancy/abnormalities. 
+* Based on the overall significance test, it is observed that along with the above mentioned factors Month of absence also influence our response variable.
+
+## 11. FEATURE SELECTION THROUGH STEPWISE APPROACH
+As a part of feature selection approach, step function using forward and backward selection approach is employed. For this purpose, we create empty model that consists of intercept only ant the full model is Manual.Model2.fit that is fitted above in section 10.3
+
+```{r}
+
+## empty model (only intercept)
+empty_model <-  glm(formula = Target_variable1 ~ 1,
+                    
+                    family = binomial(link = logit),
+                    
+                    data = df2)
+
+## output of empty model
+summary(empty_model)
+
+
+
+```
+
+## 11.1 FORWARD SELECTION APPROACH
+```{r}
+
+forw.sel <- step(object = empty_model, scope = list(upper = Manual.Model2.fit), direction = "forward", 
+                 k = (nrow(df2)), trace = TRUE)
+## selects all variables
+
+```
+
+
+## 11.2 BACKWARD SELECTION APPROACH
+```{r}
+
+
+bakw.sel <- step(object = Manual.Model2.fit, scope = list(upper = empty_model), direction = "backward", 
+                 k = (nrow(df2)), trace = TRUE)
+## selects empty model
+
+
+```
+Generally forward and backward selection approach provide different results. Since forward selection selects all variables from the given dataset we choose this approach thereby considering all variables for our glm model
+
+
+## 12. RESIDUAL ANALYSIS
+```{r}
+plot(Manual.Model2.fit)
+residualPlots(Manual.Model2.fit)
+```
+The residual plots on each independent variable shows that there is not pattern and confirms that points are randomly dispersed around the horizontal axis thus the model is a good fit for the data.Similarly the Residual vs fitted plot shows no pattern, from the Normal Q-Q we find that normality assumption for residuals is achieved. Residual vs leverage plot shows the points are distributed within the Cook's distance thus there are no influential cases.
+
+```{r}
+d <- data.frame("actual_Targetvariable"=df2$Target_variable1, "predicted"=Manual.Model2.fit$fitted.values, "residual"=Manual.Model2.fit$residuals)
+d
+ 
+hist(d$predicted)
+
+hist(d$residual)
+```
+The histogram of predicted values from glm model shows the probability of success is spread between 0 and 1. From the histogram of residuals, we observe a normally distributed pattern.
+
+## 13. RESPONSE ANALYSIS
+```{r}
+
+## Relationship between Transportation expense and Target_variable
+df2 %>% boxplot(Transportation.expense~ Target_variable1, data = ., 
+                 xlab = "Target variable (1-Absent; 0-Not absent)", ylab = "Transportion expense", 
+                 main="Box plot of Transport expense and Target variable", col="orange", horizontal = F)
+
+
+```
+The boxplot of transport expense and target variable shows incidence of absence has a normally distributed transport expense. Average transport expense for absent employee is greater than the average transport expense when not absent.
+
+
+## 14. GOODNESS OF FIT
+Goodness of fit is estimated using LR test and Pseudo R-square values. For this purpose, we considered a reduced model that fits logistic regression on limited number of predictors that emerged significant under Chi-square test of association. Thus the reduced model considers Reason type, Seasons, Social Smoker, Disciplinary failure and Month of absence as independent variables. In this section, we examine the goodness of fit between full model and reduced model.
+
+```{r}
+
+## model with limited number of parameters that emerged significant under Chi-square test of association
+reduced_model <- glm(formula = Target_variable ~ Reason_type + Seasons + Social.smoker + Disciplinary.failure + Month.of.absence, 
+             family = binomial(link = logit), data = df1)
+summary(reduced_model)
+
+
+## Likelihood Ratio Test
+library(lmtest)
+lrtest(Manual.Model2.fit, reduced_model)
+
+## deviance
+Manual.Model2.fit$deviance
+reduced_model$deviance
+
+
+## Pseudo R^2
+library(pscl)
+pR2(Manual.Model2.fit) 
+pR2(reduced_model) 
+```
+From the LR test and deviance comparison, it is observed that reduced model performs better than full model. However we find that reduced model does not converge and faces the problem of complete separation eventually resulting no significant factors. Hence for a model with reduced predictors its log likelihood value is generally lower. A lower log likelihood value results in lower deviance and significance under LR test. Therefore we consider full model as the final regression model with McFadden R^2 of 33%.     
+
+
+
+## 15. CONFIDENCE INTERVAL
+This section performs Wald interval test to test individual predictors like Transportation expense and Age
+```{r}
+# Wald interval
+# Wald interval for Transportation.expense
+beta.ci<-confint.default(object = Manual.Model2.fit, parm = "Transportation.expense", level = 0.95)
+
+beta.ci  # C.I. for beta
+
+exp(beta.ci)  # C.I. for OR with c = 1
+
+exp(beta.ci*118)  # C.I. for OR with c = 118
+
+rev(exp(-118*beta.ci))  # C.I. for OR with c = -118
+
+rev(1/exp(beta.ci*118))  # Invert C.I. for OR with c = 118, obviously the same as c = -118
+#### CI of transport expense do not contain 0 hence we reject null hypothesis. CI for transport expenses is 
+### statistically significant
+
+
+#Wald Interval for Age 
+beta.ci<-confint.default(object = Manual.Model2.fit, parm = "Age", level = 0.95)
+
+beta.ci  # C.I. for beta
+
+exp(beta.ci)  # C.I. for OR with c = 1
+
+exp(beta.ci*30)  # C.I. for OR with c = 30
+
+rev(exp(-30*beta.ci))  # C.I. for OR with c = -30
+
+rev(1/exp(beta.ci*30))  # Invert C.I. for OR with c = 30, obviously the same as c = -30
+#### CI of Age contain 0 hence we fail to reject null hypothesis. CI for Age is 
+### not statisticaly significant
+
+```
+Based on the Wald CI, we observe that CI of transport expense is statistically significant as the CI do not contain 0 hence reject null hypothesis. Where the CI of Age is not statistically significant because the CI contains 0 hence we fail to reject the null hypothesis.
+
+
+## 16. HYPOTHESIS TESTING
+This section conducts Wald and LR test using ANova() function to test the overall significance of logistic regression model. It measures how much the estimated probabilities of success for the null hypothesis model deviate from the estimated probabilities of success for the alternative hypothesis model.
+```{r}
+
+## wald test
+Anova(mod = Manual.Model2.fit, test.statistic = "Wald")
+## LR test and Anova are same
+Anova(mod = Manual.Model2.fit, test = "LR")
+
+```
+Based on the hypothesis test for overall significance, we find variable like Month of absence; Season; Transportation expense; Son; Social drinker; Pet and Reason type influence absence at work.
+
+## 17. SENSITIVITY ANALYSIS
+in this section, we study the sensitivity analysis using odds ratio
+```{r}
+
+exp(Manual.Model2.fit$coefficients)
+1/exp(Manual.Model2.fit$coefficients)
+
+
+```
+* The Variables like Days of the week,Transportation Expense , summer season, Son,Social Drinker - yes and pet having high significant impact on Absenteeism with P-value < 0.05.
+* For Days of the week, the odd ration for Monday is 0.512, which is comparative high compare to all other days of the week.
+* The odds ratio between 388 and 118 (the Amount of money paid out for travel) ,shows that the odds of Transportation.expense is 0.991 times greater in 388 than 118 amount. 
+* The odd ration for summer season is 2.27 and spring is 0.16
+* The odd ration for Son is 1.518
+* For Social Drinker - yes , the odd ratio is 0.606 and for pet the odd ratio is 1.296
+* In case of Reason type Medical consultation and pregnancy/abnormalities are 10.50 and 7.025
+* 
+* Accordingly, this difference also makes Transportation.expense more significant at the higher Absenteeism.
+
+
+## 18. CRITIQUE & LIMITATION
+
+* As discussed earlier, the variable ‘Absenteeism time in hours’ is used to create a binary target variable where observations having absenteeism time in hours greater than 0 is considered being absent while absenteeism time in hour equal to 0 is an instance of not absent. 
+* With this calculation, it was observed that 94% of total observation are classified as absent and only 6% as not absent eventually resulting in a skewed distribution of our target variable. 
+* From the modelling process, it was found that logistic regression model fitted on this data did not derive any significant factors along with a warning that convergence did not occur and ‘fitted probabilities numerically 0 or 1 occurred’. 
+* This warning could be a result of skewness in target variable and most importantly when explanatory variable perfectly separates the target variable between 0 and 1. For example, valid values under reason for absence will be generated only when an employee is absent. Hence modelling on such dataset leads to the problem of ‘Complete Separation’.  
+* As a measure to overcome this problem, we used Firth’s logistf model or the penalized likelihood model which modifies the likelihood function in order to lessen the bias in parameter estimates. The penalty applied on the score function prevents any parameters from completely separating response variable. However on fitting the penalized ML on absenteeism at work dataset, we observed parameter estimates did not converge and the model did not result in any significant factors. 
+* Thus this study considered transforming target variable as an alternative approach to overcome this issue while fitting a logistic regression model. As a part of transformation process median estimate of absenteeism time is considered hence Target variable is classified as ‘absent’ when absenteeism time is greater than its median whereas less than median as ‘not absent’. This transformed target variable has 54% chance of being absent and 46% chance of being not absent.
+
+
+## 19. SUMMARY & CONCLUSION
+
+From the above  conducted analysis , we can conclude that descriptive features gave us the results such as the particular age group of employees such as above 45  has reduced absenteeism in hours . As per results from the Phase 1 analysis ,considering the education level ,employees with the higher degree have more hours of absenteeism than the employees who just studied high school , and analyze their relationship and correlation between each and every variables present. The data will be additionally analyzed to see if there are any significant relationships between the features. 
+
+Structuring a logistic regression model can predict the probability of amount of absenteeism.
+Using an ANOVA, all predictor variables like Monday; Spring and Summer season; Transportation expense; Son; Social drinker; Pet; Medical consultation and pregnancy/abnormalities. were found to be highly signifigant at p < 0.005, demonstrating that they all contribute to the predictive power of the model.
+
+Moreover, with the assistance of our model, the HR division of a firm could sieve the candidates who will ruin the flow of business with high absenteeism rate, just by gathering the required data at that point go through the model and by that improve production rate, limit cost of activity and maximize profit.
+
+
+## 20. REFERENCES
+
+* [1] Exploration Of Absenteeism With Machine Learning, medium.com [online] Available:  https://medium.com/@ojoolawalejulius2016/exploration-of-absenteeism-with-machine-learning-1f01a8f9357e
+* [2] Absenteeism at work - UCI Repository, Kaggle.com [online] Available: https://www.kaggle.com/loganalive/absenteeism-at-work-uci-repository
+* [3] Employee_Absenteeism_Prediction, kaggle.com [online] Available: https://www.kaggle.com/olacharles/employee-absenteeism-prediction
+* [4] Absenteeism at work (Logistic Regression Model), klmanalytics.com [online] Available: https://www.klmanalyticshub.com/absenteeism-at-work-logistic-regression-model/
+* [5] Lecture notes, Dr. Vural Aksakalli, Analysis of Categorical Data, Semester 2 2020, RMIT.
+
+
